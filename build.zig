@@ -25,7 +25,7 @@ pub fn build(b: *Builder) void {
         const full_src_path = path.join(b.allocator, &[_][]const u8{ "deps", "sdl", src_file }) catch unreachable;
         sdl.addCSourceFile(full_src_path, lib_cflags);
     }
-    if (builtin.os.tag == .macosx) {
+    if (builtin.os.tag == .macos) {
         sdl.addIncludeDir("deps/sdl/src/hidapi");
         sdl.addIncludeDir("deps/sdl/src/hidapi/hidapi");
         for (sdl_macos_src_files) |src_file| {
@@ -33,14 +33,16 @@ pub fn build(b: *Builder) void {
             sdl.addCSourceFile(full_src_path, lib_cflags);
         }
         sdl.addFrameworkDir("/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks");
+        sdl.addSystemIncludeDir("/usr/local/Cellar/llvm/10.0.1_1/lib/clang/10.0.1/include");
         sdl.addSystemIncludeDir("/usr/local/include");
-        sdl.addSystemIncludeDir("/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/11.0.3/include");
+        //sdl.addSystemIncludeDir("/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/11.0.3/include");
+        sdl.addSystemIncludeDir("/usr/local/opt/llvm/include");
         sdl.addSystemIncludeDir("/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include");
         sdl.addSystemIncludeDir("/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include");
-        
+
         sdl.linkFramework("AppKit");
         sdl.linkFramework("AudioToolbox");
-        sdl.linkFramework("AudioUnit"); 
+        sdl.linkFramework("AudioUnit");
         sdl.linkFramework("Carbon");
         sdl.linkFramework("Cocoa");
         sdl.linkFramework("CoreAudio");
@@ -60,11 +62,12 @@ pub fn build(b: *Builder) void {
     }
     sdl.install();
 
-    const exe = b.addExecutable("test-zig-binocle", "src/main.zig");
+    const exe = b.addExecutable("test-zig-sdl", "src/main.zig");
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.linkLibrary(sdl);
     exe.addIncludeDir("deps/sdl/include");
+    //  export LDFLAGS="-L/usr/local/opt/llvm/lib"
     exe.install();
 
     const run_cmd = exe.run();
