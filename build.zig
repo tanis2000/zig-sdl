@@ -2,6 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const Builder = std.build.Builder;
 const path = std.fs.path;
+const print = std.debug.print;
 
 pub fn build(b: *Builder) void {
     // Standard target options allows the person running `zig build` to choose
@@ -14,7 +15,7 @@ pub fn build(b: *Builder) void {
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const mode = b.standardReleaseOptions();
 
-    const lib_cflags = &[_][]const u8{"-std=c99"};
+    const lib_cflags = &[_][]const u8{"-std=c99", "-ObjC"};
 
     const sdl = b.addStaticLibrary("SDL2", null);
     sdl.setBuildMode(mode);
@@ -25,20 +26,25 @@ pub fn build(b: *Builder) void {
         const full_src_path = path.join(b.allocator, &[_][]const u8{ "deps", "sdl", src_file }) catch unreachable;
         sdl.addCSourceFile(full_src_path, lib_cflags);
     }
+
     if (builtin.os.tag == .macos) {
-        sdl.addIncludeDir("deps/sdl/src/hidapi");
-        sdl.addIncludeDir("deps/sdl/src/hidapi/hidapi");
+        //print("\n{s}", .{"macOS"});
+        // sdl.addIncludeDir("deps/sdl/src/hidapi");
+        // sdl.addIncludeDir("deps/sdl/src/hidapi/hidapi");
         for (sdl_macos_src_files) |src_file| {
             const full_src_path = path.join(b.allocator, &[_][]const u8{ "deps", "sdl", src_file }) catch unreachable;
             sdl.addCSourceFile(full_src_path, lib_cflags);
         }
         sdl.addFrameworkDir("/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks");
-        sdl.addSystemIncludeDir("/usr/local/Cellar/llvm/10.0.1_1/lib/clang/10.0.1/include");
-        sdl.addSystemIncludeDir("/usr/local/include");
-        //sdl.addSystemIncludeDir("/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/11.0.3/include");
-        sdl.addSystemIncludeDir("/usr/local/opt/llvm/include");
         sdl.addSystemIncludeDir("/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include");
         sdl.addSystemIncludeDir("/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include");
+        //sdl.addSystemIncludeDir("/usr/local/Cellar/llvm/10.0.1_1/lib/clang/10.0.1/include");
+        sdl.addSystemIncludeDir("/opt/homebrew/Cellar/llvm/13.0.1_1/lib/clang/13.0.1/include");
+        //sdl.addSystemIncludeDir("/usr/local/include");
+        sdl.addSystemIncludeDir("/opt/homebrew/include");
+        //sdl.addSystemIncludeDir("/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/11.0.3/include");
+        sdl.addSystemIncludeDir("/usr/local/opt/llvm/include");
+        sdl.addSystemIncludeDir("/opt/homebrew/opt/llvm/include");
 
         sdl.linkFramework("AppKit");
         sdl.linkFramework("AudioToolbox");
@@ -46,19 +52,31 @@ pub fn build(b: *Builder) void {
         sdl.linkFramework("Carbon");
         sdl.linkFramework("Cocoa");
         sdl.linkFramework("CoreAudio");
+        sdl.linkFramework("CoreBluetooth");
         sdl.linkFramework("CoreFoundation");
+        sdl.linkFramework("CoreGraphics");
+        sdl.linkFramework("CoreHaptics");
+        sdl.linkFramework("CoreMotion");
         sdl.linkFramework("CoreServices");
         sdl.linkFramework("CoreVideo");
         sdl.linkFramework("ForceFeedback");
+        sdl.linkFramework("GameController");
         sdl.linkFramework("IOKit");
         sdl.linkFramework("OpenGL");
+        // sdl.linkFramework("OpenGLES");
         sdl.linkFramework("Security");
 
-        sdl.defineCMacro("TARGET_API_MAC_CARBON");
-        sdl.defineCMacro("TARGET_API_MAC_OSX");
-        sdl.defineCMacro("_THREAD_SAFE");
-        sdl.defineCMacro("__APPLE__");
-        sdl.defineCMacro("__MACOSX__");
+        sdl.defineCMacro("TARGET_API_MAC_CARBON", "1");
+        sdl.defineCMacro("TARGET_API_MAC_OSX", "1");
+        sdl.defineCMacro("_THREAD_SAFE", "1");
+        sdl.defineCMacro("__APPLE__", "1");
+        sdl.defineCMacro("__MACOSX__", "1");
+        // sdl.defineCMacro("SDL_VIDEO_OPENGL", "1");
+        // sdl.defineCMacro("SDL_VIDEO_OPENGL_CGL", "1");
+        // sdl.defineCMacro("SDL_VIDEO_RENDER_OGL", "1");
+        // sdl.defineCMacro("SDL_VIDEO_OPENGL_EGL", "1");
+        // sdl.defineCMacro("SDL_VIDEO_OPENGL_ES2", "1");
+        // sdl.defineCMacro("SDL_VIDEO_RENDER_OGL_ES2", "1");
     }
     sdl.install();
 
@@ -67,6 +85,7 @@ pub fn build(b: *Builder) void {
     exe.setBuildMode(mode);
     exe.linkLibrary(sdl);
     exe.addIncludeDir("deps/sdl/include");
+    //exe.addIncludeDir("deps/sdl/src/dynapi");
     //  export LDFLAGS="-L/usr/local/opt/llvm/lib"
     exe.install();
 
@@ -85,16 +104,17 @@ const sdl_generic_src_files = [_][]const u8{
     "src/SDL_dataqueue.c",
     "src/SDL_error.c",
     "src/SDL_hints.c",
+    "src/SDL_list.c",
     "src/SDL_log.c",
     "src/atomic/SDL_atomic.c",
     "src/atomic/SDL_spinlock.c",
     "src/audio/SDL_audio.c",
     "src/audio/SDL_audiocvt.c",
+    "src/audio/SDL_audiodev.c",
     "src/audio/SDL_audiotypecvt.c",
     "src/audio/SDL_mixer.c",
     "src/audio/SDL_wave.c",
     "src/cpuinfo/SDL_cpuinfo.c",
-    //"src/cpuinfo/SDL_simd.c",
     "src/dynapi/SDL_dynapi.c",
     "src/events/SDL_clipboardevents.c",
     "src/events/SDL_displayevents.c",
@@ -108,6 +128,7 @@ const sdl_generic_src_files = [_][]const u8{
     "src/events/SDL_windowevents.c",
     "src/file/SDL_rwops.c",
     "src/haptic/SDL_haptic.c",
+    "src/hidapi/SDL_hidapi.c",
     "src/joystick/SDL_gamecontroller.c",
     "src/joystick/SDL_joystick.c",
     "src/joystick/hidapi/SDL_hidapijoystick.c",
@@ -136,17 +157,20 @@ const sdl_generic_src_files = [_][]const u8{
     "src/libm/s_floor.c",
     "src/libm/s_scalbn.c",
     "src/libm/s_sin.c",
+    "src/locale/SDL_locale.c",
+    "src/misc/SDL_url.c",
     "src/power/SDL_power.c",
     "src/render/SDL_render.c",
     "src/render/SDL_yuv_sw.c",
     "src/sensor/SDL_sensor.c",
-    "src/sensor/dummy/SDL_dummysensor.c",
+    "src/stdlib/SDL_crc32.c",
     "src/stdlib/SDL_getenv.c",
     "src/stdlib/SDL_iconv.c",
     "src/stdlib/SDL_malloc.c",
     "src/stdlib/SDL_qsort.c",
     "src/stdlib/SDL_stdlib.c",
     "src/stdlib/SDL_string.c",
+    "src/stdlib/SDL_strtokr.c",
     "src/thread/SDL_thread.c",
     "src/timer/SDL_timer.c",
     "src/video/SDL_RLEaccel.c",
@@ -160,6 +184,7 @@ const sdl_generic_src_files = [_][]const u8{
     "src/video/SDL_blit_slow.c",
     "src/video/SDL_bmp.c",
     "src/video/SDL_clipboard.c",
+    "src/video/SDL_egl.c",
     "src/video/SDL_fillrect.c",
     "src/video/SDL_pixels.c",
     "src/video/SDL_rect.c",
@@ -167,11 +192,37 @@ const sdl_generic_src_files = [_][]const u8{
     "src/video/SDL_stretch.c",
     "src/video/SDL_surface.c",
     "src/video/SDL_video.c",
-    "src/video/SDL_vulkan_utils.c",
     "src/video/SDL_yuv.c",
     "src/video/yuv2rgb/yuv_rgb.c",
+};
+
+const sdl_macos_src_files = [_][]const u8 {
+    "src/audio/coreaudio/SDL_coreaudio.m",
     "src/audio/disk/SDL_diskaudio.c",
+    "src/audio/dummy/SDL_dummyaudio.c",
+    "src/file/cocoa/SDL_rwopsbundlesupport.m",
+    "src/filesystem/cocoa/SDL_sysfilesystem.m",
+    "src/joystick/darwin/SDL_iokitjoystick.c",
+    "src/joystick/hidapi/SDL_hidapi_gamecube.c",
+    "src/joystick/hidapi/SDL_hidapi_luna.c",
+    "src/joystick/hidapi/SDL_hidapi_ps4.c",
+    "src/joystick/hidapi/SDL_hidapi_ps5.c",
+    "src/joystick/hidapi/SDL_hidapi_rumble.c",
+    "src/joystick/hidapi/SDL_hidapi_stadia.c",
+    "src/joystick/hidapi/SDL_hidapi_steam.c",
+    "src/joystick/hidapi/SDL_hidapi_switch.c",
+    "src/joystick/hidapi/SDL_hidapi_xbox360.c",
+    "src/joystick/hidapi/SDL_hidapi_xbox360w.c",
+    "src/joystick/hidapi/SDL_hidapi_xboxone.c",
+    "src/joystick/hidapi/SDL_hidapijoystick.c",
+    "src/joystick/iphoneos/SDL_mfijoystick.m",
+    "src/joystick/virtual/SDL_virtualjoystick.c",
+    "src/haptic/darwin/SDL_syshaptic.c",
+    "src/hidapi/mac/hid.c",
     "src/loadso/dlopen/SDL_sysloadso.c",
+    "src/locale/macosx/SDL_syslocale.m",
+    "src/misc/macosx/SDL_sysurl.m",
+    "src/power/macosx/SDL_syspower.c",
     "src/render/opengl/SDL_render_gl.c",
     "src/render/opengl/SDL_shaders_gl.c",
     "src/render/software/SDL_blendfillrect.c",
@@ -181,27 +232,15 @@ const sdl_generic_src_files = [_][]const u8{
     "src/render/software/SDL_drawpoint.c",
     "src/render/software/SDL_render_sw.c",
     "src/render/software/SDL_rotate.c",
-    "src/video/dummy/SDL_nullevents.c",
-    "src/video/dummy/SDL_nullframebuffer.c",
-    "src/video/dummy/SDL_nullvideo.c",
-    "src/audio/dummy/SDL_dummyaudio.c",
-};
-
-const sdl_macos_src_files = [_][]const u8 {
+    "src/render/software/SDL_triangle.c",
     "src/sensor/coremotion/SDL_coremotionsensor.m",
-    "src/hidapi/mac/hid.c",
+    "src/sensor/dummy/SDL_dummysensor.c",
     "src/thread/pthread/SDL_syscond.c",
     "src/thread/pthread/SDL_sysmutex.c",
     "src/thread/pthread/SDL_syssem.c",
     "src/thread/pthread/SDL_systhread.c",
     "src/thread/pthread/SDL_systls.c",
     "src/timer/unix/SDL_systimer.c",
-    "src/audio/coreaudio/SDL_coreaudio.m",
-    "src/joystick/darwin/SDL_sysjoystick.c",
-    "src/haptic/darwin/SDL_syshaptic.c",
-    "src/power/macosx/SDL_syspower.c",
-    "src/file/cocoa/SDL_rwopsbundlesupport.m",
-    "src/filesystem/cocoa/SDL_sysfilesystem.m",
     "src/video/SDL_egl.c",
     "src/video/cocoa/SDL_cocoaclipboard.m",
     "src/video/cocoa/SDL_cocoaevents.m",
@@ -209,10 +248,11 @@ const sdl_macos_src_files = [_][]const u8 {
     "src/video/cocoa/SDL_cocoamessagebox.m",
     "src/video/cocoa/SDL_cocoamodes.m",
     "src/video/cocoa/SDL_cocoamouse.m",
-    "src/video/cocoa/SDL_cocoamousetap.m",
     "src/video/cocoa/SDL_cocoaopengl.m",
     "src/video/cocoa/SDL_cocoashape.m",
     "src/video/cocoa/SDL_cocoavideo.m",
-    "src/video/cocoa/SDL_cocoavulkan.m",
     "src/video/cocoa/SDL_cocoawindow.m",
+    "src/video/dummy/SDL_nullevents.c",
+    "src/video/dummy/SDL_nullframebuffer.c",
+    "src/video/dummy/SDL_nullvideo.c",
 };
